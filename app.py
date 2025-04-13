@@ -76,10 +76,11 @@ if submitted:
     # Convert to DataFrame
     input_df = pd.DataFrame([input_data])
 
-    # Debug: Print columns for verification
+    # Debug: Print columns and data types
     st.write("Input DataFrame columns:", input_df.columns.tolist())
     st.write("Expected feature columns:", feature_columns.tolist())
     st.write("Label Encoder columns:", list(label_encoders.keys()))
+    st.write("Input DataFrame dtypes:", input_df.dtypes.to_dict())
 
     # Check for missing columns
     expected_cols = feature_columns.tolist()
@@ -106,6 +107,13 @@ if submitted:
         input_df[numerical_cols] = scaler.transform(input_df[numerical_cols])
     except Exception as e:
         st.error(f"Error scaling numerical features: {e}")
+        st.stop()
+
+    # Debug: Check for non-numeric values before prediction
+    non_numeric_cols = input_df.select_dtypes(include=['object']).columns
+    if len(non_numeric_cols) > 0:
+        st.error(f"Non-numeric values found in columns: {non_numeric_cols.tolist()}")
+        st.write("DataFrame values:", input_df.to_dict())
         st.stop()
 
     # Ensure correct feature order
