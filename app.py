@@ -5,24 +5,28 @@ import joblib
 import numpy as np
 
 # Load model and preprocessors
-model = joblib.load('churn_model.pkl')
-scaler = joblib.load('scaler.pkl')
-label_encoders = joblib.load('label_encoders.pkl')
-feature_columns = joblib.load('feature_columns.pkl')
+try:
+    model = joblib.load('churn_model.pkl')
+    scaler = joblib.load('scaler.pkl')
+    label_encoders = joblib.load('label_encoders.pkl')
+    feature_columns = joblib.load('feature_columns.pkl')
+except FileNotFoundError:
+    st.error("Model or preprocessor files not found. Please run train_model.py first.")
+    st.stop()
 
 # Streamlit app
 st.title("Customer Churn Prediction")
 st.write("Enter customer details to predict if they are likely to churn.")
 
-# Create input fields for each feature
+# Create input form
 with st.form("customer_form"):
-    # Demographic info
+    st.subheader("Demographic Information")
     gender = st.selectbox("Gender", ["Male", "Female"])
     senior_citizen = st.selectbox("Senior Citizen", ["No", "Yes"])
     partner = st.selectbox("Partner", ["Yes", "No"])
     dependents = st.selectbox("Dependents", ["Yes", "No"])
 
-    # Service details
+    st.subheader("Service Details")
     tenure = st.slider("Tenure (months)", 0, 72, 12)
     phone_service = st.selectbox("Phone Service", ["Yes", "No"])
     multiple_lines = st.selectbox("Multiple Lines", ["Yes", "No", "No phone service"])
@@ -34,7 +38,7 @@ with st.form("customer_form"):
     streaming_tv = st.selectbox("Streaming TV", ["Yes", "No", "No internet service"])
     streaming_movies = st.selectbox("Streaming Movies", ["Yes", "No", "No internet service"])
 
-    # Billing info
+    st.subheader("Billing Information")
     contract = st.selectbox("Contract", ["Month-to-month", "One year", "Two year"])
     paperless_billing = st.selectbox("Paperless Billing", ["Yes", "No"])
     payment_method = st.selectbox("Payment Method", ["Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"])
@@ -72,24 +76,39 @@ if submitted:
     # Convert to DataFrame
     input_df = pd.DataFrame([input_data])
 
+    # Debug: Verify columns
+    expected_cols = feature_columns.tolist()
+    missing_cols = [col for col in expected_cols if col not in input_df.columns]
+    if missing_cols:
+        st.error(f"Missing columns in input data: {missing_cols}")
+        st.stop()
+
     # Encode categorical variables
     for col in label_encoders:
         try:
             input_df[col] = label_encoders[col].transform(input_df[col])
-        except ValueError:
-            st.error(f"Invalid value for {col}. Please select a valid option.")
+        except ValueError as e:
+            st.error(f"Invalid value for {col}: {e}. Ensure input matches training data options.")
             st.stop()
 
     # Scale numerical features
     numerical_cols = ['tenure', 'MonthlyCharges', 'TotalCharges']
-    input_df[numerical_cols] = scaler.transform(input_df[numerical_cols])
+    try:
+        input_df[numerical_cols] = scaler.transform(input_df[numerical_cols])
+    except Exception as e:
+        st.error(f"Error scaling numerical features: {e}")
+        st.stop()
 
     # Ensure correct feature order
     input_df = input_df[feature_columns]
 
     # Predict
-    prediction = model.predict(input_df)
-    probability = model.predict_proba(input_df)[0][1]
+    try:
+        prediction = model.predict(input_df)
+        probability = model.predict_proba(input_df)[0][1]
+    except Exception as e:
+        st.error(f"Prediction error: {e}")
+        st.stop()
 
     # Display results
     st.subheader("Prediction Result")
