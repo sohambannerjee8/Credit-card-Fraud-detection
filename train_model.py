@@ -38,7 +38,7 @@ X_test[numerical_cols] = scaler.transform(X_test[numerical_cols])
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
-# Save model, scaler, and label encoders
+# Save model, scaler, label encoders, and feature columns
 joblib.dump(model, 'churn_model.pkl')
 joblib.dump(scaler, 'scaler.pkl')
 joblib.dump(label_encoders, 'label_encoders.pkl')
