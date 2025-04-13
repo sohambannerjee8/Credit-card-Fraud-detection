@@ -1,4 +1,4 @@
-# app.py
+# app_fraud.py
 import streamlit as st
 import pandas as pd
 import joblib
@@ -6,72 +6,34 @@ import numpy as np
 
 # Load model and preprocessors
 try:
-    model = joblib.load('churn_model.pkl')
+    model = joblib.load('fraud_model.pkl')
     scaler = joblib.load('scaler.pkl')
-    label_encoders = joblib.load('label_encoders.pkl')
     feature_columns = joblib.load('feature_columns.pkl')
 except FileNotFoundError:
-    st.error("Model or preprocessor files not found. Please run train_model.py first.")
+    st.error("Model or scaler files not found. Please run train_model_fraud.py first.")
     st.stop()
 
 # Streamlit app
-st.title("Customer Churn Prediction")
-st.write("Enter customer details to predict if they are likely to churn.")
+st.title("Credit Card Fraud Detection")
+st.write("Enter transaction details to predict if it's fraudulent.")
 
 # Create input form
-with st.form("customer_form"):
-    st.subheader("Demographic Information")
-    gender = st.selectbox("Gender", ["Male", "Female"])
-    senior_citizen = st.selectbox("Senior Citizen", ["No", "Yes"])
-    partner = st.selectbox("Partner", ["Yes", "No"])
-    dependents = st.selectbox("Dependents", ["Yes", "No"])
-
-    st.subheader("Service Details")
-    tenure = st.slider("Tenure (months)", 0, 72, 12)
-    phone_service = st.selectbox("Phone Service", ["Yes", "No"])
-    multiple_lines = st.selectbox("Multiple Lines", ["Yes", "No", "No phone service"])
-    internet_service = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
-    online_security = st.selectbox("Online Security", ["Yes", "No", "No internet service"])
-    online_backup = st.selectbox("Online Backup", ["Yes", "No", "No internet service"])
-    device_protection = st.selectbox("Device Protection", ["Yes", "No", "No internet service"])
-    tech_support = st.selectbox("Tech Support", ["Yes", "No", "No internet service"])
-    streaming_tv = st.selectbox("Streaming TV", ["Yes", "No", "No internet service"])
-    streaming_movies = st.selectbox("Streaming Movies", ["Yes", "No", "No internet service"])
-
-    st.subheader("Billing Information")
-    contract = st.selectbox("Contract", ["Month-to-month", "One year", "Two year"])
-    paperless_billing = st.selectbox("Paperless Billing", ["Yes", "No"])
-    payment_method = st.selectbox("Payment Method", ["Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"])
-    monthly_charges = st.number_input("Monthly Charges ($)", min_value=0.0, max_value=150.0, value=50.0, step=0.1)
-    total_charges = st.number_input("Total Charges ($)", min_value=0.0, max_value=10000.0, value=600.0, step=0.1)
+with st.form("transaction_form"):
+    st.subheader("Transaction Details")
+    time = st.number_input("Time (seconds)", min_value=0.0, value=0.0)
+    amount = st.number_input("Amount ($)", min_value=0.0, value=0.0)
+    v_inputs = {}
+    for i in range(1, 29):
+        v_inputs[f'V{i}'] = st.number_input(f'V{i}', value=0.0)
 
     # Submit button
-    submitted = st.form_submit_button("Predict Churn")
+    submitted = st.form_submit_button("Predict Fraud")
 
 # Process input and predict
 if submitted:
     # Create input dictionary
-    input_data = {
-        'gender': gender,
-        'SeniorCitizen': senior_citizen,
-        'Partner': partner,
-        'Dependents': dependents,
-        'tenure': tenure,
-        'PhoneService': phone_service,
-        'MultipleLines': multiple_lines,
-        'InternetService': internet_service,
-        'OnlineSecurity': online_security,
-        'OnlineBackup': online_backup,
-        'DeviceProtection': device_protection,
-        'TechSupport': tech_support,
-        'StreamingTV': streaming_tv,
-        'StreamingMovies': streaming_movies,
-        'Contract': contract,
-        'PaperlessBilling': paperless_billing,
-        'PaymentMethod': payment_method,
-        'MonthlyCharges': monthly_charges,
-        'TotalCharges': total_charges
-    }
+    input_data = {'Time': time, 'Amount': amount}
+    input_data.update(v_inputs)
 
     # Convert to DataFrame
     input_df = pd.DataFrame([input_data])
@@ -83,24 +45,12 @@ if submitted:
         st.error(f"Missing columns in input data: {missing_cols}")
         st.stop()
 
-    # Encode categorical variables
-    for col in label_encoders:
-        try:
-            input_df[col] = label_encoders[col].transform(input_df[col])
-        except ValueError as e:
-            st.error(f"Invalid value for {col}: {e}. Ensure input matches training data options.")
-            st.stop()
-
-    # Scale numerical features
-    numerical_cols = ['tenure', 'MonthlyCharges', 'TotalCharges']
+    # Scale features
     try:
-        input_df[numerical_cols] = scaler.transform(input_df[numerical_cols])
+        input_df = scaler.transform(input_df[feature_columns])
     except Exception as e:
-        st.error(f"Error scaling numerical features: {e}")
+        st.error(f"Error scaling features: {e}")
         st.stop()
-
-    # Ensure correct feature order
-    input_df = input_df[feature_columns]
 
     # Predict
     try:
@@ -113,6 +63,6 @@ if submitted:
     # Display results
     st.subheader("Prediction Result")
     if prediction[0] == 1:
-        st.error(f"Customer is likely to churn with {probability*100:.2f}% probability.")
+        st.error(f"Transaction is likely fraudulent with {probability*100:.2f}% probability.")
     else:
-        st.success(f"Customer is not likely to churn with {(1-probability)*100:.2f}% confidence.")
+        st.success(f"Transaction is not likely fraudulent with {(1-probability)*100:.2f}% confidence.")
