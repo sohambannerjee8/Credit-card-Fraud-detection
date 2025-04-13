@@ -32,7 +32,7 @@ with st.form("customer_form"):
     multiple_lines = st.selectbox("Multiple Lines", ["Yes", "No", "No phone service"])
     internet_service = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
     online_security = st.selectbox("Online Security", ["Yes", "No", "No internet service"])
-    online_backup = st.selectbox("Online Backup", ["Yes", "No", "No internet service"])
+    online_backup = st.selectbox("Online Backup", ["YesJudith", "No", "No internet service"])
     device_protection = st.selectbox("Device Protection", ["Yes", "No", "No internet service"])
     tech_support = st.selectbox("Tech Support", ["Yes", "No", "No internet service"])
     streaming_tv = st.selectbox("Streaming TV", ["Yes", "No", "No internet service"])
@@ -76,7 +76,12 @@ if submitted:
     # Convert to DataFrame
     input_df = pd.DataFrame([input_data])
 
-    # Debug: Verify columns
+    # Debug: Print columns for verification
+    st.write("Input DataFrame columns:", input_df.columns.tolist())
+    st.write("Expected feature columns:", feature_columns.tolist())
+    st.write("Label Encoder columns:", list(label_encoders.keys()))
+
+    # Check for missing columns
     expected_cols = feature_columns.tolist()
     missing_cols = [col for col in expected_cols if col not in input_df.columns]
     if missing_cols:
@@ -85,10 +90,14 @@ if submitted:
 
     # Encode categorical variables
     for col in label_encoders:
+        if col not in input_df.columns:
+            st.error(f"Column {col} not found in input DataFrame.")
+            st.stop()
         try:
             input_df[col] = label_encoders[col].transform(input_df[col])
         except ValueError as e:
             st.error(f"Invalid value for {col}: {e}. Ensure input matches training data options.")
+            st.write(f"Valid options for {col}: {label_encoders[col].classes_.tolist()}")
             st.stop()
 
     # Scale numerical features
@@ -100,7 +109,11 @@ if submitted:
         st.stop()
 
     # Ensure correct feature order
-    input_df = input_df[feature_columns]
+    try:
+        input_df = input_df[feature_columns]
+    except KeyError as e:
+        st.error(f"Feature order error: {e}. Ensure all expected columns are present.")
+        st.stop()
 
     # Predict
     try:
