@@ -32,7 +32,7 @@ with st.form("customer_form"):
     multiple_lines = st.selectbox("Multiple Lines", ["Yes", "No", "No phone service"])
     internet_service = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
     online_security = st.selectbox("Online Security", ["Yes", "No", "No internet service"])
-    online_backup = st.selectbox("Online Backup", ["Yes", "No", "No internet service"])  # Fixed typo
+    online_backup = st.selectbox("Online Backup", ["Yes", "No", "No internet service"])
     device_protection = st.selectbox("Device Protection", ["Yes", "No", "No internet service"])
     tech_support = st.selectbox("Tech Support", ["Yes", "No", "No internet service"])
     streaming_tv = st.selectbox("Streaming TV", ["Yes", "No", "No internet service"])
