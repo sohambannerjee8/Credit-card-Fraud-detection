@@ -22,7 +22,7 @@ st.write("Enter customer details to predict if they are likely to churn.")
 with st.form("customer_form"):
     st.subheader("Demographic Information")
     gender = st.selectbox("Gender", ["Male", "Female"])
-    senior_citizen = st.selectbox("Senior Citizen", ["No", "Yes"])
+    senior_citizen = st.selectbox("Senior Citizen", ["No", "Yes"])  # Will map to 0/1
     partner = st.selectbox("Partner", ["Yes", "No"])
     dependents = st.selectbox("Dependents", ["Yes", "No"])
 
@@ -50,10 +50,13 @@ with st.form("customer_form"):
 
 # Process input and predict
 if submitted:
+    # Map SeniorCitizen to numeric values
+    senior_citizen_numeric = 0 if senior_citizen == "No" else 1
+
     # Create input dictionary
     input_data = {
         'gender': gender,
-        'SeniorCitizen': senior_citizen,
+        'SeniorCitizen': senior_citizen_numeric,  # Use numeric value
         'Partner': partner,
         'Dependents': dependents,
         'tenure': tenure,
