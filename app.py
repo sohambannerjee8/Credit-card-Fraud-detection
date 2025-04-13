@@ -1,205 +1,9 @@
-# app.py
 import streamlit as st
 import pandas as pd
 import joblib
 import numpy as np
+import matplotlib.pyplot as plt
 
-def on_predict_button_clicked(b):
-    with output:
-        output.clear_output()
-        
-        # Map SeniorCitizen to numeric values
-        senior_citizen_numeric = 0 if senior_citizen.value == 'No' else 1
-
-        # Create input dictionary
-        input_data = {
-            'gender': gender.value,
-            'SeniorCitizen': senior_citizen_numeric,
-            'Partner': partner.value,
-            'Dependents': dependents.value,
-            'tenure': tenure.value,
-            'PhoneService': phone_service.value,
-            'MultipleLines': multiple_lines.value,
-            'InternetService': internet_service.value,
-            'OnlineSecurity': online_security.value,
-            'OnlineBackup': online_backup.value,
-            'DeviceProtection': device_protection.value,
-            'TechSupport': tech_support.value,
-            'StreamingTV': streaming_tv.value,
-            'StreamingMovies': streaming_movies.value,
-            'Contract': contract.value,
-            'PaperlessBilling': paperless_billing.value,
-            'PaymentMethod': payment_method.value,
-            'MonthlyCharges': monthly_charges.value,
-            'TotalCharges': total_charges.value
-        }
-
-        # Convert to DataFrame
-        input_df = pd.DataFrame([input_data])
-
-        # Check for missing columns
-        expected_cols = feature_columns.tolist()
-        missing_cols = [col for col in expected_cols if col not in input_df.columns]
-        if missing_cols:
-            display(Markdown(f"**Error**: Missing columns: {missing_cols}"))
-            return
-
-        # Encode categorical variables
-        for col in label_encoders:
-            if col not in input_df.columns:
-                display(Markdown(f"**Error**: Column {col} not found."))
-                return
-            try:
-                input_df[col] = label_encoders[col].transform(input_df[col])
-            except ValueError as e:
-                display(Markdown(f"**Error**: Invalid input for {col}: {e}. Valid options: {label_encoders[col].classes_.tolist()}"))
-                return
-
-        # Scale numerical features
-        numerical_cols = ['tenure', 'MonthlyCharges', 'TotalCharges']
-        try:
-            input_df[numerical_cols] = scaler.transform(input_df[numerical_cols])
-        except Exception as e:
-            display(Markdown(f"**Error**: Processing numerical data: {e}"))
-            return
-
-        # Ensure correct feature order
-        try:
-            input_df = input_df[feature_columns]
-        except KeyError as e:
-            display(Markdown(f"**Error**: Aligning features: {e}"))
-            return
-
-        # Predict
-        try:
-            prediction = model.predict(input_df)
-            probability = model.predict_proba(input_df)[0][1]
-        except Exception as e:
-            display(Markdown(f"**Error**: Prediction failed: {e}"))
-            return
-
-        # Display results
-        display(Markdown("## Prediction Result"))
-        customer_ref = f"Customer {customer_id.value}" if customer_id.value.strip() else "The customer"
-        
-        # Categorize risk
-        if probability >= 0.7:
-            risk_level = "High Risk"
-            risk_color = "color: #d32f2f; font-weight: bold;"
-            recommendations = [
-                "Offer a loyalty discount or promotional pricing.",
-                "Provide enhanced customer support or a dedicated account manager.",
-                "Highlight long-term contract benefits to encourage commitment."
-            ]
-        elif probability >= 0.4:
-            risk_level = "Medium Risk"
-            risk_color = "color: #d32f2f; font-weight: bold;"
-            recommendations = [
-                "Send personalized retention offers, such as a free month of streaming.",
-                "Engage with a satisfaction survey to identify pain points.",
-                "Promote additional services to increase engagement."
-            ]
-        else:
-            risk_level = "Low Risk"
-            risk_color = "color: #388e3c; font-weight: bold;"
-            recommendations = [
-                "Continue providing excellent service to maintain loyalty.",
-                "Invite to a referral program to leverage satisfaction.",
-                "Offer minor incentives to reinforce positive experience."
-            ]
-
-        # Display prediction
-        if prediction[0] == 1:
-            display(HTML(f"<p><b>{customer_ref}</b> is <span style='{risk_color}'>{risk_level}</span> of churning with a {probability*100:.1f}% probability.</p>"))
-        else:
-            display(HTML(f"<p><b>{customer_ref}</b> is <span style='{risk_color}'>{risk_level}</span> of churning with a {(1-probability)*100:.1f}% likelihood of staying.</p>"))
-
-        # Visualization 1: Churn Probability Bar Plot
-        display(Markdown("### Churn Probability"))
-        fig, ax = plt.subplots(figsize=(6, 4))
-        ax.bar(['Churn', 'Stay'], [probability, 1-probability], color=['#d32f2f', '#388e3c'])
-        ax.set_ylim(0, 1)
-        ax.set_ylabel('Probability')
-        ax.set_title('Churn vs. Retention Probability')
-        for i, v in enumerate([probability, 1-probability]):
-            ax.text(i, v + 0.02, f'{v*100:.1f}%', ha='center')
-        plt.tight_layout()
-        plt.show()
-
-        # Show input summary
-        display(Markdown("### Customer Details"))
-        details = (
-            f"- **Customer ID**: {customer_id.value or 'Not provided'}\n"
-            f"- **Gender**: {gender.value}\n"
-            f"- **Senior Citizen**: {senior_citizen.value}\n"
-            f"- **Partner**: {partner.value}\n"
-            f"- **Dependents**: {dependents.value}\n"
-            f"- **Tenure**: {tenure.value} months\n"
-            f"- **Phone Service**: {phone_service.value}\n"
-            f"- **Multiple Lines**: {multiple_lines.value}\n"
-            f"- **Internet Service**: {internet_service.value}\n"
-            f"- **Online Security**: {online_security.value}\n"
-            f"- **Online Backup**: {online_backup.value}\n"
-            f"- **Device Protection**: {device_protection.value}\n"
-            f"- **Tech Support**: {tech_support.value}\n"
-            f"- **Streaming TV**: {streaming_tv.value}\n"
-            f"- **Streaming Movies**: {streaming_movies.value}\n"
-            f"- **Contract**: {contract.value}\n"
-            f"- **Paperless Billing**: {paperless_billing.value}\n"
-            f"- **Payment Method**: {payment_method.value}\n"
-            f"- **Monthly Charges**: ${monthly_charges.value:.2f}\n"
-            f"- **Total Charges**: ${total_charges.value:.2f}"
-        )
-        display(Markdown(details))
-
-        # Retention recommendations
-        display(Markdown("### Retention Recommendations"))
-        for rec in recommendations:
-            display(Markdown(f"- {rec}"))
-
-        # Visualization 2: Feature Importance Bar Plot
-        display(Markdown("### Key Factors Influencing Prediction"))
-        factors = []
-        factor_scores = []
-        if tenure.value <= 12:
-            factors.append("Short Tenure")
-            factor_scores.append(0.4)  # Arbitrary weight for visualization
-        if contract.value == "Month-to-month":
-            factors.append("Month-to-month Contract")
-            factor_scores.append(0.3)
-        if monthly_charges.value > 80:
-            factors.append("High Monthly Charges")
-            factor_scores.append(0.2)
-        if not factors:
-            factors.append("No Major Risks")
-            factor_scores.append(0.1)
-
-        fig, ax = plt.subplots(figsize=(8, 4))
-        ax.barh(factors, factor_scores, color='#ff9800')
-        ax.set_xlabel('Relative Impact')
-        ax.set_title('Key Factors Driving Churn Risk')
-        ax.invert_yaxis()
-        plt.tight_layout()
-        plt.show()
-
-        for factor in factors:
-            display(Markdown(f"- {factor}"))
-
-        # Visualization 3: Tenure vs. Charges Scatter Plot
-        display(Markdown("### Tenure vs. Monthly Charges"))
-        fig, ax = plt.subplots(figsize=(6, 4))
-        ax.scatter(tenure.value, monthly_charges.value, color='#2196f3', s=100, label='Customer')
-        ax.axvline(x=12, color='gray', linestyle='--', label='Low Tenure Threshold (12 months)')
-        ax.axhline(y=80, color='orange', linestyle='--', label='High Charges Threshold ($80)')
-        ax.set_xlabel('Tenure (months)')
-        ax.set_ylabel('Monthly Charges ($)')
-        ax.set_title('Customer Profile: Tenure vs. Monthly Charges')
-        ax.legend()
-        plt.tight_layout()
-        plt.show()
-
-# Attach the button click event
-predict_button.on_click(on_predict_button_clicked)
 # Set page config for better appearance
 st.set_page_config(page_title="Telco Churn Prediction", layout="wide")
 
@@ -398,6 +202,19 @@ if submitted:
     else:
         st.markdown(f"**{customer_ref} is <span class='{risk_style}'>{risk_level}</span> of churning with a {(1-probability)*100:.1f}% likelihood of staying.**", unsafe_allow_html=True)
 
+    # Visualization 1: Churn Probability Bar Plot
+    st.subheader("Churn Probability")
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.bar(['Churn', 'Stay'], [probability, 1-probability], color=['#d32f2f', '#388e3c'])
+    ax.set_ylim(0, 1)
+    ax.set_ylabel('Probability')
+    ax.set_title('Churn vs. Retention Probability')
+    for i, v in enumerate([probability, 1-probability]):
+        ax.text(i, v + 0.02, f'{v*100:.1f}%', ha='center')
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close(fig)
+
     # Show input summary
     with st.expander("View Customer Details"):
         st.write("**Summary of Inputs:**")
@@ -427,16 +244,45 @@ if submitted:
     for rec in recommendations:
         st.write(f"- {rec}")
 
-    # Feature importance (simplified, based on typical model output)
+    # Visualization 2: Feature Importance Bar Plot
     st.subheader("Key Factors Influencing Prediction")
     factors = []
+    factor_scores = []
     if tenure <= 12:
-        factors.append("Short tenure: Customers with less than a year are at higher risk.")
+        factors.append("Short Tenure")
+        factor_scores.append(0.4)  # Arbitrary weight for visualization
     if contract == "Month-to-month":
-        factors.append("Month-to-month contract: Longer contracts reduce churn risk.")
+        factors.append("Month-to-month Contract")
+        factor_scores.append(0.3)
     if monthly_charges > 80:
-        factors.append("High monthly charges: Cost may be a concern.")
+        factors.append("High Monthly Charges")
+        factor_scores.append(0.2)
     if not factors:
-        factors.append("No standout risk factors; maintain current service quality.")
+        factors.append("No Major Risks")
+        factor_scores.append(0.1)
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.barh(factors, factor_scores, color='#ff9800')
+    ax.set_xlabel('Relative Impact')
+    ax.set_title('Key Factors Driving Churn Risk')
+    ax.invert_yaxis()
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close(fig)
+
     for factor in factors:
         st.write(f"- {factor}")
+
+    # Visualization 3: Tenure vs. Charges Scatter Plot
+    st.subheader("Tenure vs. Monthly Charges")
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.scatter(tenure, monthly_charges, color='#2196f3', s=100, label='Customer')
+    ax.axvline(x=12, color='gray', linestyle='--', label='Low Tenure Threshold (12 months)')
+    ax.axhline(y=80, color='orange', linestyle='--', label='High Charges Threshold ($80)')
+    ax.set_xlabel('Tenure (months)')
+    ax.set_ylabel('Monthly Charges ($)')
+    ax.set_title('Customer Profile: Tenure vs. Monthly Charges')
+    ax.legend()
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close(fig)
